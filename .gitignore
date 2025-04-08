@@ -1,0 +1,22 @@
+# Maven
+target/
+
+# Generated files
+test-output/
+
+# Logs
+*.log
+
+# IDE files
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+
+# Compiled files
+*.class
+
+# OS specific
+.DS_Store
+Thumbs.db
