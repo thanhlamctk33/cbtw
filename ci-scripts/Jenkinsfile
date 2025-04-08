@@ -1,0 +1,172 @@
+pipeline {
+    agent any
+    
+    tools {
+        maven 'Maven 3.8.6'
+        jdk 'JDK 17'
+    }
+
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'qa', 'staging'], description: 'Environment to run tests against')
+        choice(name: 'TEST_SUITE', choices: ['web-tests', 'mobile-tests', 'regression'], description: 'Test suite to run')
+        booleanParam(name: 'HEADLESS', defaultValue: true, description: 'Run in headless mode')
+        string(name: 'EMAIL_RECIPIENTS', defaultValue: 'team@example.com', description: 'Email recipients for test reports')
+        booleanParam(name: 'SLACK_NOTIFICATION', defaultValue: true, description: 'Send Slack notifications')
+    }
+
+    options {
+        timeout(time: 60, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+    }
+
+    triggers {
+        // Run tests every night at 2 AM
+        cron('0 2 * * *')
+    }
+
+    environment {
+        TESTNG_REPORT_DIR = "target/surefire-reports"
+        ALLURE_REPORT_DIR = "target/allure-results"
+        EXTENT_REPORT_DIR = "test-output/extent-reports"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                echo "Running build on environment: ${params.ENVIRONMENT}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    def mvnCommand = "mvn test -Denv=${params.ENVIRONMENT} -Dsuite=${params.TEST_SUITE}"
+
+                    if (params.HEADLESS) {
+                        mvnCommand += " -Dheadless=true"
+                    }
+
+                    try {
+                        sh mvnCommand
+                    } catch (Exception e) {
+                        currentBuild.result = 'UNSTABLE'
+                        echo "Tests failed: ${e.message}"
+                    }
+                }
+            }
+        }
+
+        stage('Generate Reports') {
+            parallel {
+                stage('TestNG Report') {
+                    steps {
+                        // Publish TestNG Report
+                        step([$class: 'Publisher', reportFilenamePattern: '**/testng-results.xml'])
+                    }
+                }
+
+                stage('Allure Report') {
+                    steps {
+                        // Generate and publish Allure Report
+                        allure([
+                            includeProperties: false,
+                            jdk: '',
+                            properties: [],
+                            reportBuildPolicy: 'ALWAYS',
+                            results: [[path: 'target/allure-results']]
+                        ])
+                    }
+                }
+
+                stage('Extent Reports') {
+                    steps {
+                        // Publish Extent Reports
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'test-output/extent-reports',
+                            reportFiles: 'extent-report.html',
+                            reportName: 'Extent HTML Report',
+                            reportTitles: ''
+                        ])
+                    }
+                }
+
+                stage('ReportNG') {
+                    steps {
+                        // Publish ReportNG Reports
+                        publishHTML([
+                            allowMissing: false,
+                            alwaysLinkToLastBuild: true,
+                            keepAll: true,
+                            reportDir: 'target/surefire-reports/html',
+                            reportFiles: 'index.html',
+                            reportName: 'ReportNG HTML Report',
+                            reportTitles: ''
+                        ])
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Archive test results
+            junit allowEmptyResults: true, testResults: '**/target/surefire-reports/*.xml'
+
+            // Clean up resources
+            sh 'pkill -f chromedriver || true'
+            sh 'pkill -f geckodriver || true'
+            sh 'pkill -f appium || true'
+
+            // Archive test artifacts
+            archiveArtifacts artifacts: 'test-output/screenshots/**/*.png', allowEmptyArchive: true
+        }
+
+        success {
+            echo 'Tests completed successfully!'
+            emailext (
+                subject: "SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                body: """<p>SUCCESS: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'</p>
+                <p>Check console output at: <a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]</a></p>
+                <p>Test Summary: All tests passed</p>""",
+                to: "${params.EMAIL_RECIPIENTS}",
+                attachmentsPattern: 'target/surefire-reports/emailable-report.html'
+            )
+        }
+
+        unstable {
+            echo 'Tests partially failed!'
+            emailext (
+                subject: "UNSTABLE: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                body: """<p>UNSTABLE: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'</p>
+                <p>Check console output at: <a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]</a></p>
+                <p>Test Summary: Some tests failed, see attached report</p>""",
+                to: "${params.EMAIL_RECIPIENTS}",
+                attachmentsPattern: 'target/surefire-reports/emailable-report.html'
+            )
+        }
+
+        failure {
+            echo 'Test execution failed!'
+            emailext (
+                subject: "FAILURE: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'",
+                body: """<p>FAILURE: Job '${env.JOB_NAME} [${env.BUILD_NUMBER}]'</p>
+                <p>Check console output at: <a href='${env.BUILD_URL}'>${env.JOB_NAME} [${env.BUILD_NUMBER}]</a></p>
+                <p>Test Summary: Build failed</p>""",
+                to: "${params.EMAIL_RECIPIENTS}",
+                attachmentsPattern: 'target/surefire-reports/emailable-report.html'
+            )
+        }
+    }
+}

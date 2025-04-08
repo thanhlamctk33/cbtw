@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="CTF Learn and Mobile Trading App Test Suite" parallel="tests" thread-count="2">
+  <!-- Listeners for reporting -->
+  <listeners>
+    <listener class-name="automation.utils.reporting.TestListener" />
+    <listener class-name="org.uncommons.reportng.HTMLReporter" />
+    <listener class-name="org.uncommons.reportng.JUnitXMLReporter" />
+  </listeners>
+
+  <!-- Global parameters -->
+  <parameter name="env" value="${env}" />
+  <parameter name="browser" value="${browser}" />
+  <parameter name="headless" value="${headless}" />
+
+  <!-- Web Tests -->
+  <test name="CTF Learn Web Tests">
+    <parameter name="headless" value="false" />
+    <groups>
+      <run>
+        <include name="web" />
+        <include name="regression" />
+      </run>
+    </groups>
+    <classes>
+      <class name="automation.ctflearn.web.CTFLearnChallengeCreationTest" />
+      <!-- Add more web test classes here -->
+    </classes>
+  </test>
+
+  <!-- Mobile Tests -->
+  <test name="Exness Mobile Trading App Tests">
+    <groups>
+      <run>
+        <include name="mobile" />
+        <include name="regression" />
+      </run>
+    </groups>
+    <classes>
+      <class name="automation.ctflearn.mobile.TradingAppPortfolioTest" />
+      <!-- Add more mobile test classes here -->
+    </classes>
+  </test>
+</suite>
