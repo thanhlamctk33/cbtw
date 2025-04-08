@@ -5,6 +5,7 @@ A comprehensive test automation framework for CTF Learn platform and Exness mobi
 ## Table of Contents
 
 - [Overview](#overview)
+- [Project Structure](#project-structure)
 - [Features](#features)
 - [Technologies](#technologies)
 - [Setup and Installation](#setup-and-installation)
@@ -17,6 +18,71 @@ A comprehensive test automation framework for CTF Learn platform and Exness mobi
 ## Overview
 
 This framework provides a robust solution for automated testing of the CTF Learn platform (web application) and Exness mobile trading application. It follows the Page Object Model design pattern for maintainable and reusable test automation.
+
+## Project Structure
+
+```
+cbtw_automation/
+├── src/
+│   ├── main/
+│   │   └── java/
+│   │       └── automation/
+│   │           ├── ctflearn/
+│   │           │   ├── dataObject/
+│   │           │   │   └── web/
+│   │           │   │       └── CTFLearnChallenge.java
+│   │           │   ├── mobile/
+│   │           │   │   ├── LoginScreen.java
+│   │           │   │   ├── ProfileScreen.java
+│   │           │   │   └── TradeScreen.java
+│   │           │   └── web/
+│   │           │       ├── ChallengeHomePage.java
+│   │           │       ├── ChallengesPage.java
+│   │           │       ├── CreateChallengePage.java
+│   │           │       ├── HomePage.java
+│   │           │       └── LoginPage.java
+│   │           └── utils/
+│   │               ├── mobile/
+│   │               │   ├── AppiumDriverManager.java
+│   │               │   ├── AppLauncher.java
+│   │               │   ├── BaseMobilePage.java
+│   │               │   └── Mobile.java
+│   │               ├── web/
+│   │               │   ├── BaseWebPage.java
+│   │               │   └── WebDriverFactory.java
+│   │               ├── AssertHelper.java
+│   │               ├── ConfigLoader.java
+│   │               ├── Element.java
+│   │               ├── JsonLoader.java
+│   │               ├── LogUtil.java
+│   │               ├── PathManager.java
+│   │               ├── TestBase.java
+│   │               └── WaitUtil.java
+│   └── test/
+│       └── java/
+│           └── automation/
+│               └── ctflearn/
+│                   ├── mobile/
+│                   │   └── TradingAppPortfolioTest.java
+│                   └── web/
+│                       └── CTFLearnChallengeCreationTest.java
+├── ci-scripts/
+│   └── Jenkinsfile
+├── parameters/
+│   ├── config.properties
+│   ├── dev.properties
+│   ├── qa.properties
+│   └── staging.properties
+├── testdata/
+│   ├── jsonfile/
+│   │   └── CTFLearn.json
+│   └── pdffile/
+│       └── ex.pdf
+├── pom.xml
+├── mobile-tests.xml
+├── testing.xml
+└── README.md
+```
 
 ## Features
 
@@ -106,6 +172,7 @@ appium.android.app.package=com.exness.android.pa
 ```
 
 ## Running Tests
+
 ### Web Tests
 
 ```bash
@@ -188,4 +255,4 @@ The project includes a Jenkinsfile for CI/CD integration. The pipeline includes 
 2. Create your feature branch: `git checkout -b feature/my-new-feature`
 3. Commit your changes: `git commit -am 'Add some feature'`
 4. Push to the branch: `git push origin feature/my-new-feature`
-5. Submit a pull request# cbtw
+5. Submit a pull request
